@@ -215,7 +215,7 @@ QStringList Launcher::_get_board_info( const QString alias, const QString board_
     board_data << board_splascreen_directory + "/run_qt-creator";
     board_data << board_splascreen_directory + "/run_images-folder";
     board_data << board_splascreen_directory + "/run_documentation";
-    board_data << board_splascreen_directory + "/run_update";
+    board_data << board_splascreen_directory + "/run_install";
 
 exit:
     return board_data;
