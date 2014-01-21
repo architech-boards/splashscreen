@@ -1,0 +1,5 @@
+#!/bin/bash
+[ $# -eq 2 ] || exit
+INTERFACE_DIRECTORY=$1
+ARCHITECH_MANIFEST=
+exit 0
