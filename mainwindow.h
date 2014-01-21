@@ -23,8 +23,6 @@ private:
 
 private slots:
     void addJSObject();
-    void linkClickedSlot( QUrl url );
-    void handleSslErrors( QNetworkReply* reply, const QList<QSslError> &errors );
 
 };
 #endif
