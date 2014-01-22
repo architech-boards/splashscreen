@@ -4,8 +4,9 @@ BRANCH="dora"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR/../../
 ROOT_DIRECTORY=`pwd`
-ARCHITECH_MANIFEST="${ROOT_DIRECTORY}/${INTERFACE_REPOSITORY}/manifests/architech"
-PARTNERS_MANIFEST="${ROOT_DIRECTORY}/${INTERFACE_REPOSITORY}/manifests/partners"
+ARCHITECH_MANIFESTS_REPOSITORY="architech-manifest"
+ARCHITECH_MANIFEST="${ROOT_DIRECTORY}/${ARCHITECH_MANIFESTS_REPOSITORY}/architech"
+PARTNERS_MANIFEST="${ROOT_DIRECTORY}/${ARCHITECH_MANIFESTS_REPOSITORY}/partners"
 ARCHITECH_DIRECTORY="architech"
 PARTNERS_DIRECTORY="partners"
 BOARDS_MANIFEST="boards_manifest"
@@ -23,12 +24,25 @@ function board_installation_error {
 
 if [ ! -d ${INTERFACE_REPOSITORY} ]
 then
-    echo "Cloning https://github.com/architech-boards/${INTERFACE_REPOSITORY}.git (branch $BRANCH), this might take several minutes..."
+    echo "Cloning https://github.com/architech-boards/${INTERFACE_REPOSITORY}.git (branch $BRANCH)..."
     git clone -b ${BRANCH} https://github.com/architech-boards/${INTERFACE_REPOSITORY}.git > /dev/null 2>&1
     [ $? -eq 0 ] || internet_error
 else
     cd ${INTERFACE_REPOSITORY}
     echo "Updating repository ${INTERFACE_REPOSITORY}, this might take several minutes..."
+    git pull > /dev/null 2>&1
+    [ $? -eq 0 ] || internet_error
+fi
+
+cd ${ROOT_DIRECTORY}
+if [ ! -d ${ARCHITECH_MANIFESTS_REPOSITORY} ]
+then
+    echo "Cloning https://github.com/architech-boards/architech-manifest.git (branch $BRANCH)..."
+    git clone -b ${BRANCH} https://github.com/architech-boards/architech-manifest.git > /dev/null 2>&1
+    [ $? -eq 0 ] || internet_error
+else
+    cd ${ARCHITECH_MANIFESTS_REPOSITORY}
+    echo "Updating repository ${ARCHITECH_MANIFESTS_REPOSITORY}..."
     git pull > /dev/null 2>&1
     [ $? -eq 0 ] || internet_error
 fi
