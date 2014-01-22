@@ -1,5 +1,6 @@
 #!/bin/bash
-[ $# -eq 2 ] || exit
+[ $# -eq 1 ] || exit 1
 INTERFACE_DIRECTORY=$1
-ARCHITECH_MANIFEST=
-exit 0
+cd ${INTERFACE_DIRECTORY}
+git pull
+exit $?
