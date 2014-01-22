@@ -1,10 +1,14 @@
 #!/bin/bash
-INTERFACE_REPOSITORY="splashscreen_interface"
+
+#######################################################################################################################
+# Parameters
+
 BRANCH="dora"
+INTERFACE_REPOSITORY="splashscreen_interface"
+ARCHITECH_MANIFESTS_REPOSITORY="architech-manifest"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR/../../
 ROOT_DIRECTORY=`pwd`
-ARCHITECH_MANIFESTS_REPOSITORY="architech-manifest"
 ARCHITECH_MANIFEST="${ROOT_DIRECTORY}/${ARCHITECH_MANIFESTS_REPOSITORY}/architech"
 PARTNERS_MANIFEST="${ROOT_DIRECTORY}/${ARCHITECH_MANIFESTS_REPOSITORY}/partners"
 ARCHITECH_DIRECTORY="architech"
@@ -12,9 +16,30 @@ PARTNERS_DIRECTORY="partners"
 BOARDS_MANIFEST="boards_manifest"
 BOARDS_MANIFEST_DIRECTORY="boards_manifest"
 SPLASHSCREEN_DIRECTORY="splashscreen"
+UPDATE_GRAPHICS="no"
+UPDATE_BOARDS="no"
+
+#######################################################################################################################
+# Helpers
+
+function print_usage {
+cat << EOF
+
+ This program prepares gets graphics and boards information from
+ git repositories and runs boards installations script
+
+ Usage: $1 [options]
+
+ OPTIONS:
+ -h                 Print this help and exit
+ -g                 Update ArchiTech splashscreen graphics
+ -b                 Update boards information. You have to know what your doing here.
+
+EOF
+}
 
 function internet_error {
-    echo "ERROR: Impossible to connect to internet, double check your Internet connection"
+    echo "ERROR: Impossible to connect to Internet, double check your Internet connection"
     exit 1   
 }
 
@@ -22,30 +47,69 @@ function board_installation_error {
     echo "ERROR: Impossible to install/update $1 board"
 }
 
-if [ ! -d ${INTERFACE_REPOSITORY} ]
-then
-    echo "Cloning https://github.com/architech-boards/${INTERFACE_REPOSITORY}.git (branch $BRANCH)..."
-    git clone -b ${BRANCH} https://github.com/architech-boards/${INTERFACE_REPOSITORY}.git > /dev/null 2>&1
-    [ $? -eq 0 ] || internet_error
-else
-    cd ${INTERFACE_REPOSITORY}
-    echo "Updating repository ${INTERFACE_REPOSITORY}, this might take several minutes..."
-    git pull > /dev/null 2>&1
-    [ $? -eq 0 ] || internet_error
-fi
+#######################################################################################################################
+# Options parsing
+
+while getopts "hgb" option
+do
+    case ${option} in
+        h)
+            print_usage $0
+            exit 0
+            ;;
+        g)
+            UPDATE_GRAPHICS="yes"
+            ;;
+        b)
+            UPDATE_BOARDS="yes"
+            ;;
+        ?)
+            print_usage $0
+            exit 1
+            ;;
+    esac
+done
+
+#######################################################################################################################
+# ArchiTech manifest files. We always want to update the manifest.
 
 cd ${ROOT_DIRECTORY}
 if [ ! -d ${ARCHITECH_MANIFESTS_REPOSITORY} ]
 then
-    echo "Cloning https://github.com/architech-boards/architech-manifest.git (branch $BRANCH)..."
+    echo "Cloning architech-manifest repository..."
     git clone -b ${BRANCH} https://github.com/architech-boards/architech-manifest.git > /dev/null 2>&1
     [ $? -eq 0 ] || internet_error
 else
     cd ${ARCHITECH_MANIFESTS_REPOSITORY}
-    echo "Updating repository ${ARCHITECH_MANIFESTS_REPOSITORY}..."
+    echo "Updating ${ARCHITECH_MANIFESTS_REPOSITORY} repository..."
     git pull > /dev/null 2>&1
     [ $? -eq 0 ] || internet_error
 fi
+
+#######################################################################################################################
+# Splashscreen interface. We update only if required.
+
+cd ${ROOT_DIRECTORY}
+if [ ! -d ${INTERFACE_REPOSITORY} ]
+then
+    echo "Cloning ${INTERFACE_REPOSITORY} repository..."
+    git clone -b ${BRANCH} https://github.com/architech-boards/${INTERFACE_REPOSITORY}.git > /dev/null 2>&1
+    [ $? -eq 0 ] || internet_error
+elif [ "${UPDATE_GRAPHICS}" == "yes" ]
+then
+    cd ${INTERFACE_REPOSITORY}
+    echo "Updating ${INTERFACE_REPOSITORY} repository..."
+    git pull > /dev/null 2>&1
+    [ $? -eq 0 ] || internet_error
+fi
+
+#######################################################################################################################
+# ArchiTech boards manifest parsing. We update only if required
+
+# Each row of the manifest contains three fields (separated by |), which are:
+# 1) board alias      - the internal identifier for the board
+# 2) board repository - the repository where to get the board information
+# 3) board branch     - the branch to clone
 
 while read ARCHITECH_BOARD
 do
@@ -56,39 +120,74 @@ do
     cd ${ROOT_DIRECTORY}/${ARCHITECH_DIRECTORY}/${BOARD_ALIAS}
     if [ ! -e "${SPLASHSCREEN_DIRECTORY}" ]
     then
-        echo "Cloning ${BOARD_REPOSITORY} (branch ${BOARD_BRANCH}), this might take several minutes..."
+        echo "Cloning ${BOARD_REPOSITORY} repository..."
         git clone -b ${BOARD_BRANCH} ${BOARD_REPOSITORY} ${SPLASHSCREEN_DIRECTORY} > /dev/null 2>&1
         [ $? -eq 0 ] || internet_error        
         cd ${SPLASHSCREEN_DIRECTORY}
-    else
-        echo "Updating ${BOARD_ALIAS} from ${BOARD_REPOSITORY}, this might take several minutes..."
+        echo "Installing ${BOARD_ALIAS}..."
+        ./run_install
+        [ $? -eq 0 ] || board_installation_error ${BOARD_ALIAS}
+    elif [ "${UPDATE_BOARDS}" == "yes" ]
+    then
+        echo "Updating ${BOARD_ALIAS}..."
         cd ${SPLASHSCREEN_DIRECTORY}
         git pull > /dev/null 2>&1
         [ $? -eq 0 ] || internet_error
+        ./run_install
+        [ $? -eq 0 ] || board_installation_error ${BOARD_ALIAS}       
     fi
-    echo "Installing ${BOARD_ALIAS}, this might take several minutes..."
-    ./run_install
-    [ $? -eq 0 ] || board_installation_error ${BOARD_ALIAS}
 done < "${ARCHITECH_MANIFEST}"
+
+#######################################################################################################################
+# ArchiTech partners manifest parsing and partners repository parsing. We always update manifests but we update the
+# graphics only if required
+
+# Each row of the manifest contains three fields (separated by |), which are:
+# 1) partner alias                      - the internal identifier for the partner
+# 2) partner repository                 - the repository where to get the partner information
+# 3) partner branch                     - the branch to clone
+# 4) partner boards manifest repository - the repository where to get the partner boards manifest
+# 5) partner boards manifest branche    - the branch to clone
+# 
+# The partner boards manifest repository contains information regarding the partner boards just like ArchiTech boards
+# manifest does.
 
 while read ARCHITECH_PARTNER
 do
     PARTNER_ALIAS=`echo ${ARCHITECH_PARTNER} | awk -F"|" '{print $1}'`
     PARTNER_REPOSITORY=`echo ${ARCHITECH_PARTNER} | awk -F"|" '{print $2}'`
     PARTNER_BRANCH=`echo ${ARCHITECH_PARTNER} | awk -F"|" '{print $3}'`
+    PARTNER_BOARDS_MANIFEST_REPOSITORY=`echo ${ARCHITECH_PARTNER} | awk -F"|" '{print $4}'`
+    PARTNER_BOARDS_MANIFEST_BRANCH=`echo ${ARCHITECH_PARTNER} | awk -F"|" '{print $5}'`
     mkdir -p ${ROOT_DIRECTORY}/${PARTNERS_DIRECTORY}/${PARTNER_ALIAS}
+
+    cd ${ROOT_DIRECTORY}/${PARTNERS_DIRECTORY}/${PARTNER_ALIAS}
+    if [ ! -e ${SPLASHSCREEN_DIRECTORY} ]
+    then
+        echo "Cloning ${PARTNER_REPOSITORY}..."
+        git clone -b ${PARTNER_BRANCH} ${PARTNER_REPOSITORY} ${SPLASHSCREEN_DIRECTORY} > /dev/null 2>&1
+        [ $? -eq 0 ] || internet_error
+    elif [ "${UPDATE_GRAPHICS}" == "yes" ]
+    then
+        echo "Updating ${PARTNER_REPOSITORY}..."
+        cd ${SPLASHSCREEN_DIRECTORY}
+        git pull > /dev/null 2>&1
+        [ $? -eq 0 ] || internet_error
+    fi
+
     cd ${ROOT_DIRECTORY}/${PARTNERS_DIRECTORY}/${PARTNER_ALIAS}
     if [ ! -e ${BOARDS_MANIFEST_DIRECTORY} ]
     then
-        echo "Cloning ${PARTNER_REPOSITORY} (branch ${PARTNER_BRANCH}), this might take several minutes..."
-        git clone -b ${PARTNER_BRANCH} ${PARTNER_REPOSITORY} ${BOARDS_MANIFEST_DIRECTORY} > /dev/null 2>&1
+        echo "Cloning ${PARTNER_BOARDS_MANIFEST_REPOSITORY}..."
+        git clone -b ${PARTNER_BOARDS_MANIFEST_BRANCH} ${PARTNER_BOARDS_MANIFEST_REPOSITORY} ${BOARDS_MANIFEST_DIRECTORY} > /dev/null 2>&1
         [ $? -eq 0 ] || internet_error
     else
-        echo "Updating ${PARTNER_ALIAS} from ${PARTNER_REPOSITORY}, this might take several minutes..."
+        echo "Updating ${PARTNER_BOARDS_MANIFEST_REPOSITORY}..."
         cd ${BOARDS_MANIFEST_DIRECTORY}
         git pull > /dev/null 2>&1
         [ $? -eq 0 ] || internet_error
     fi
+
     PARTNER_BOARDS_MANIFEST="${ROOT_DIRECTORY}/${PARTNERS_DIRECTORY}/${PARTNER_ALIAS}/${BOARDS_MANIFEST_DIRECTORY}/${BOARDS_MANIFEST}"
 
     while read PARTNER_BOARD
@@ -100,19 +199,23 @@ do
         cd ${ROOT_DIRECTORY}/${PARTNERS_DIRECTORY}/${PARTNER_ALIAS}/${BOARD_ALIAS}
         if [ ! -e "${SPLASHSCREEN_DIRECTORY}" ]
         then
-            echo "Cloning ${BOARD_REPOSITORY} (branch ${BOARD_BRANCH}), this might take several minutes..."
+            echo "Cloning ${BOARD_REPOSITORY}..."
             git clone -b ${BOARD_BRANCH} ${BOARD_REPOSITORY} ${SPLASHSCREEN_DIRECTORY} > /dev/null 2>&1
             [ $? -eq 0 ] || internet_error
             cd ${SPLASHSCREEN_DIRECTORY}
-        else
-            echo "Updating ${BOARD_ALIAS} from ${BOARD_REPOSITORY}, this might take several minutes..."
+            echo "Installing ${BOARD_ALIAS}..."
+            ./run_install
+            [ $? -eq 0 ] || board_installation_error $BOARD_ALIAS
+        elif [ "${UPDATE_BOARDS}" == "yes" ]
+        then
+            echo "Updating ${BOARD_REPOSITORY}..."
             cd ${SPLASHSCREEN_DIRECTORY}
             git pull > /dev/null 2>&1
             [ $? -eq 0 ] || internet_error
+            echo "Updating ${BOARD_ALIAS}..."
+            ./run_install
+            [ $? -eq 0 ] || board_installation_error $BOARD_ALIAS           
         fi
-        echo "Installing ${BOARD_ALIAS}, this might take several minutes..."
-        ./run_install
-        [ $? -eq 0 ] || board_installation_error $BOARD_ALIAS
     done < "${PARTNER_BOARDS_MANIFEST}"
 
 done < "${PARTNERS_MANIFEST}"
