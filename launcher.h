@@ -176,6 +176,7 @@ private:
     QStringList                     _get_partner_info( const QString partner_directory );
     QStringList                     _get_board_info( const QString alias, const QString board_directory );
     int                             _process_execute( const QString program, const QStringList arguments, bool change_directory );
+    bool                            _process_start_detached( const QString program, const QStringList arguments, bool change_directory );
 };
 
 #endif // LAUNCHER_H

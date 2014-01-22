@@ -49,25 +49,13 @@ int Launcher::process_execute( const QString program, const QVariantList &argume
         stringList;
     QListIterator<QVariant>
         i(arguments);
-    QString
-        program_directory       = QFileInfo(program).absoluteDir().absolutePath();
-    int
-        to_return;
 
     while( i.hasNext() )
     {
       stringList.append( i.next().toString() );
     }
-    if( change_directory )
-    {
-        QDir::setCurrent( program_directory );
-    }
-    to_return                   = QProcess::execute( program, stringList );
-    if( change_directory )
-    {
-        QDir::setCurrent( this->working_directory );
-    }
-    return to_return;
+
+    return this->_process_execute( program, stringList, change_directory );
 }
 
 int Launcher::process_execute( const QString program, bool change_directory )
@@ -77,31 +65,36 @@ int Launcher::process_execute( const QString program, bool change_directory )
     return this->process_execute( program, arguments, change_directory );
 }
 
+bool Launcher::_process_start_detached( const QString program, const QStringList arguments, bool change_directory )
+{
+    QString
+        program_directory       = QFileInfo(program).absoluteDir().absolutePath();
+    bool
+        to_return;
+    if( change_directory )
+    {
+        QDir::setCurrent( program_directory );
+    }
+    to_return                   = QProcess::startDetached( program, arguments );
+    if( change_directory )
+    {
+        QDir::setCurrent( this->working_directory );
+    }
+    return to_return;
+}
+
 bool Launcher::process_start_detached( const QString program, const QVariantList &arguments, bool change_directory )
 {
     QStringList
         stringList;
     QListIterator<QVariant>
         i(arguments);
-    QString
-        program_directory       = QFileInfo(program).absoluteDir().absolutePath();
-    bool
-        to_return;
 
     while( i.hasNext() )
     {
       stringList.append( i.next().toString() );
     }
-    if( change_directory )
-    {
-        QDir::setCurrent( program_directory );
-    }
-    to_return                   = QProcess::startDetached( program, stringList );
-    if( change_directory )
-    {
-        QDir::setCurrent( this->working_directory );
-    }
-    return to_return;
+    return this->_process_start_detached( program, stringList, change_directory );
 }
 
 bool Launcher::process_start_detached( const QString program, bool change_directory )
@@ -238,6 +231,12 @@ QVariant Launcher::get_architech_boards_list()
 {
     QStringList
         boards_list;
+    QString
+        architech_directory_path = this->get_absolute_path( "../architech" );
+    if( architech_directory_path == "" )
+    {
+        return QVariant::fromValue( boards_list );
+    }
     QDir
         architech_directory( this->get_absolute_path( "../architech" ) );
     QStringList
@@ -278,8 +277,14 @@ QVariant Launcher::get_partner_boards_list( const QString partner_alias )
 {
     QStringList
         boards_list;
+    QString
+        partner_directory_path = this->get_absolute_path( "../partners" + partner_alias );
+    if( partner_directory_path == "" )
+    {
+        return QVariant::fromValue( boards_list );
+    }
     QDir
-        partner_directory( this->get_absolute_path( "../partners/" + partner_alias ) );
+        partner_directory( partner_directory_path );
     QStringList
         name_filters;
     name_filters << "*";
@@ -289,7 +294,7 @@ QVariant Launcher::get_partner_boards_list( const QString partner_alias )
     {
         QString
             board_directory = directories.at( i );
-        if( board_directory == "." || board_directory == ".." || board_directory == "splashscreen" )
+        if( board_directory == "." || board_directory == ".." || board_directory == "splashscreen" || board_directory == "boards_manifest" )
         {
             continue;
         }
@@ -375,8 +380,14 @@ QVariant Launcher::get_partners_list()
 {
     QStringList
         partners_list;
+    QString
+        partners_directory_path = this->get_absolute_path( "../partners" );
+    if( partners_directory_path == "" )
+    {
+        return QVariant::fromValue( partners_list );
+    }
     QDir
-        partners_directory( this->get_absolute_path( "../partners" ) );
+        partners_directory( partners_directory_path );
     QStringList
         name_filters;
     name_filters << "*";
