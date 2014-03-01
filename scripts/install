@@ -126,7 +126,17 @@ do
         cd ${SPLASHSCREEN_DIRECTORY}
         echo "Installing ${BOARD_ALIAS}..."
         ./run_install
-        [ $? -eq 0 ] || board_installation_error ${BOARD_ALIAS}
+        case $? in
+            0)
+                echo "${BOARD_ALIAS} installation done."
+                ;;
+            1)
+                internet_error
+                ;;
+            *)
+                board_installation_error ${BOARD_ALIAS}
+                ;;
+        esac
     elif [ "${UPDATE_BOARDS}" == "yes" ]
     then
         echo "Updating ${BOARD_ALIAS}..."
@@ -134,7 +144,17 @@ do
         git pull > /dev/null 2>&1
         [ $? -eq 0 ] || internet_error
         ./run_install
-        [ $? -eq 0 ] || board_installation_error ${BOARD_ALIAS}       
+         case $? in
+            0)
+                echo "${BOARD_ALIAS} update done."
+                ;;
+            1)
+                internet_error
+                ;;
+            *)
+                board_installation_error ${BOARD_ALIAS}
+                ;;
+        esac       
     fi
 done < "${ARCHITECH_MANIFEST}"
 
@@ -151,6 +171,8 @@ done < "${ARCHITECH_MANIFEST}"
 # 
 # The partner boards manifest repository contains information regarding the partner boards just like ArchiTech boards
 # manifest does.
+
+# FIXME - group board installation/update code
 
 while read ARCHITECH_PARTNER
 do
