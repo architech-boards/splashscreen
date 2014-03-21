@@ -122,10 +122,10 @@ do
     then
         echo "Cloning ${BOARD_REPOSITORY} repository..."
         git clone -b ${BOARD_BRANCH} ${BOARD_REPOSITORY} ${SPLASHSCREEN_DIRECTORY} > /dev/null 2>&1
-        [ $? -eq 0 ] || internet_error        
+        [ $? -eq 0 ] || internet_error
         cd ${SPLASHSCREEN_DIRECTORY}
         echo "Installing ${BOARD_ALIAS}..."
-        ./run_install
+        gnome-terminal --disable-factory -t ${BOARD_ALIAS} -e 'bash -c "./run_install"'
         case $? in
             0)
                 echo "${BOARD_ALIAS} installation done."
@@ -143,7 +143,7 @@ do
         cd ${SPLASHSCREEN_DIRECTORY}
         git pull > /dev/null 2>&1
         [ $? -eq 0 ] || internet_error
-        ./run_install
+        gnome-terminal --disable-factory -t ${BOARD_ALIAS} -e 'bash -c "./run_install"'
          case $? in
             0)
                 echo "${BOARD_ALIAS} update done."
@@ -226,7 +226,7 @@ do
             [ $? -eq 0 ] || internet_error
             cd ${SPLASHSCREEN_DIRECTORY}
             echo "Installing ${BOARD_ALIAS}..."
-            ./run_install
+            gnome-terminal --disable-factory -t ${BOARD_ALIAS} -e 'bash -c "./run_install"'
             [ $? -eq 0 ] || board_installation_error $BOARD_ALIAS
         elif [ "${UPDATE_BOARDS}" == "yes" ]
         then
@@ -235,7 +235,7 @@ do
             git pull > /dev/null 2>&1
             [ $? -eq 0 ] || internet_error
             echo "Updating ${BOARD_ALIAS}..."
-            ./run_install
+            gnome-terminal --disable-factory -t ${BOARD_ALIAS} -e 'bash -c "./run_install"'
             [ $? -eq 0 ] || board_installation_error $BOARD_ALIAS           
         fi
     done < "${PARTNER_BOARDS_MANIFEST}"
