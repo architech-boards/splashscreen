@@ -1,6 +1,14 @@
 #!/bin/bash
+ 
 [ $# -eq 1 ] || exit 1
+ 
+PS_FATHER=`ps -ocommand= -p $PPID | awk -F/ '{print $NF}' | awk '{print $1}'`
+[ "$PS_FATHER" == "splashscreen" ] && { gnome-terminal --disable-factory -t "update splashscreen" -e "bash -c \"./update_interface ${1}\""; exit $?; }
+ 
+echo "updating splashscreen..."
 INTERFACE_DIRECTORY=$1
 cd ${INTERFACE_DIRECTORY}
 git pull
+ 
+echo "done"
 exit $?
