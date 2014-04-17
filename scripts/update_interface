@@ -10,5 +10,4 @@ INTERFACE_DIRECTORY=$1
 cd ${INTERFACE_DIRECTORY}
 git pull
  
-echo "done"
 exit $?
