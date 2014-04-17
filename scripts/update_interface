@@ -4,10 +4,38 @@
  
 PS_FATHER=`ps -ocommand= -p $PPID | awk -F/ '{print $NF}' | awk '{print $1}'`
 [ "$PS_FATHER" == "splashscreen" ] && { gnome-terminal --disable-factory -t "update splashscreen" -e "bash -c \"./update_interface ${1}\""; exit $?; }
- 
+
+#######################################################################################################################
+# Library check
+
+function message_fail_libsh()
+{
+	    local ZENITY_INSTALLED
+        ZENITY_INSTALLED=`dpkg-query -l | grep zenity-common |& awk -F" " '{ print $1 }'`
+
+	    if [ "${ZENITY_INSTALLED}" != "ii" ]
+	    then
+		    echo "Impossible to connect to internet. Please, double check your Internet connection"
+	    else
+		    zenity --error --text "Impossible to connect to internet. Please, double check your Internet connection"
+	    fi
+}
+
+if [ ! -d libsh ]
+then
+	git clone https://github.com/architech-boards/libsh.git
+	[ $? -eq 0 ] || { message_fail_libsh; exit 1; }
+fi
+cd libsh
+git pull
+[ $? -eq 0 ] || { message_fail_libsh; exit 1; }
+source lib.sh
+cd ..
+
 echo "updating splashscreen..."
 INTERFACE_DIRECTORY=$1
 cd ${INTERFACE_DIRECTORY}
 git pull
- 
-exit $?
+[ $? -eq 0 ] || { internet_error; }
+
+exit 0
