@@ -278,7 +278,7 @@ QVariant Launcher::get_partner_boards_list( const QString partner_alias )
     QStringList
         boards_list;
     QString
-        partner_directory_path = this->get_absolute_path( "../partners" + partner_alias );
+        partner_directory_path = this->get_absolute_path( "../partners/" + partner_alias );
     if( partner_directory_path == "" )
     {
         return QVariant::fromValue( boards_list );
