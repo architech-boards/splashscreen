@@ -77,7 +77,7 @@ cd ${ROOT_DIRECTORY}
 if [ ! -d ${ARCHITECH_MANIFESTS_REPOSITORY} ]
 then
     echo "Cloning architech-manifest repository..."
-    git clone -b ${BRANCH} https://github.com/architech-boards/architech-manifest.git > /dev/null 2>&1
+    git clone -b test https://github.com/architech-boards/architech-manifest.git > /dev/null 2>&1
     [ $? -eq 0 ] || internet_error
 else
     cd ${ARCHITECH_MANIFESTS_REPOSITORY}
