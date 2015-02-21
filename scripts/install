@@ -3,7 +3,7 @@
 #######################################################################################################################
 # Parameters
 
-BRANCH="dizzy"
+BRANCH="2.0.0"
 INTERFACE_REPOSITORY="splashscreen_interface"
 ARCHITECH_MANIFESTS_REPOSITORY="architech-manifest"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
